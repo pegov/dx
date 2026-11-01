@@ -1,0 +1,29 @@
+#!/bin/bash
+
+set -euo pipefail
+
+REAL_NVIM="/usr/bin/nvim"
+BIND_DIR="$(pwd -P)"
+
+exec bwrap \
+  --unshare-all \
+  --die-with-parent \
+  --share-net \
+  --new-session \
+  --tmpfs /tmp \
+  --tmpfs /var \
+  --proc /proc \
+  --dev /dev \
+  --ro-bind /usr/lib /usr/lib \
+  --ro-bind /usr/lib64 /usr/lib64 \
+  --ro-bind /usr/bin /usr/bin \
+  --ro-bind /usr/share/nvim /usr/share/nvim \
+  --symlink usr/bin /bin \
+  --symlink usr/lib /lib \
+  --symlink usr/lib64 /lib64 \
+  --ro-bind "$HOME/.config/nvim" "$HOME/.config/nvim" \
+  --bind "$HOME/.local/share/nvim" "$HOME/.local/share/nvim" \
+  --bind "$HOME/.local/state/nvim" "$HOME/.local/state/nvim" \
+  --bind "$HOME/.cache/nvim" "$HOME/.cache/nvim" \
+  --bind "$BIND_DIR" "$BIND_DIR" \
+  -- $REAL_NVIM "$@"
