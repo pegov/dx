@@ -1,0 +1,48 @@
+#!/bin/bash
+
+set -eo pipefail
+
+REAL_GIT="/usr/bin/git"
+BIND_DIR="$(pwd -P)"
+
+SSH_BINDS=()
+if [ -n "$SSH_AUTH_SOCK" ] && [ -S "$SSH_AUTH_SOCK" ]; then
+    SSH_BINDS+=(
+      --bind "$SSH_AUTH_SOCK" "$SSH_AUTH_SOCK"
+      --setenv SSH_AUTH_SOCK "$SSH_AUTH_SOCK"
+    )
+fi
+
+exec bwrap \
+  --unshare-all \
+  --die-with-parent \
+  --share-net \
+  --new-session \
+  --tmpfs /tmp \
+  --tmpfs /var \
+  --proc /proc \
+  --dev /dev \
+  --ro-bind /usr/lib /usr/lib \
+  --ro-bind /usr/lib64 /usr/lib64 \
+  --ro-bind /usr/bin /usr/bin \
+  --symlink usr/bin /bin \
+  --symlink usr/lib /lib \
+  --symlink usr/lib64 /lib64 \
+  --ro-bind /etc/resolv.conf /etc/resolv.conf \
+  --ro-bind /etc/hosts /etc/hosts \
+  --ro-bind /etc/nsswitch.conf /etc/nsswitch.conf \
+  --ro-bind /etc/ssl /etc/ssl \
+  --ro-bind /etc/ca-certificates /etc/ca-certificates \
+  --ro-bind /etc/passwd /etc/passwd \
+  --dir /run \
+  --dir /run/systemd \
+  --dir /run/systemd/resolve \
+  --ro-bind-try /run/systemd/resolve/io.systemd.Resolve /run/systemd/resolve/io.systemd.Resolve \
+  --bind-try /tmp/lazygit-1000 /tmp/lazygit-1000 \
+  --ro-bind-try "$HOME/.gitconfig" "$HOME/.gitconfig" \
+  --ro-bind-try $HOME/.ssh/config $HOME/.ssh/config \
+  --ro-bind-try $HOME/.ssh/known_hosts $HOME/.ssh/known_hosts \
+  --bind "$BIND_DIR" "$BIND_DIR" \
+  --chdir "$BIND_DIR" \
+  "${SSH_BINDS[@]}" \
+  -- $REAL_GIT "$@"
